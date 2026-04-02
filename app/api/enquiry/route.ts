@@ -12,12 +12,24 @@ interface EnquiryPayload {
     source?: "contact-page" | "popup";
 }
 
+// ✅ CORS headers
+const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+}
+
+// ✅ OPTIONS - Preflight
+export async function OPTIONS() {
+    return NextResponse.json({}, { headers: corsHeaders })
+}
+
 // ── Transporter ────────────────────────────────────────────────────────────
 
 const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT) || 587,
-    secure: false, // false for port 587 (STARTTLS), true for 465
+    secure: false,
     auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
@@ -93,7 +105,7 @@ export async function POST(req: NextRequest) {
         if (!name || !phone || !classLevel || !subject) {
             return NextResponse.json(
                 { success: false, message: "Missing required fields." },
-                { status: 400 }
+                { status: 400, headers: corsHeaders }  // ✅
             );
         }
 
@@ -102,12 +114,15 @@ export async function POST(req: NextRequest) {
         const autoReply = buildAutoReply(body);
         if (autoReply) await transporter.sendMail(autoReply);
 
-        return NextResponse.json({ success: true });
+        return NextResponse.json(
+            { success: true },
+            { headers: corsHeaders }  // ✅
+        );
     } catch (err) {
         console.error("[enquiry] mail error:", err);
         return NextResponse.json(
             { success: false, message: "Failed to send email. Please try again." },
-            { status: 500 }
+            { status: 500, headers: corsHeaders }  // ✅
         );
     }
 }

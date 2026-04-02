@@ -18,6 +18,7 @@ const userSchema = new Schema({
     rollNumber: {
         type: String,
         unique: true,
+        sparse: true,
     },
     role: {
         type: String,
@@ -34,8 +35,8 @@ const userSchema = new Schema({
     // ✅ location is now a structured object
     location: {
         country: { type: String, default: "" },
-        state:   { type: String, default: "" },
-        city:    { type: String, default: "" },
+        state: { type: String, default: "" },
+        city: { type: String, default: "" },
         pincode: { type: String, default: "" },
         address: { type: String, default: "" },
     },

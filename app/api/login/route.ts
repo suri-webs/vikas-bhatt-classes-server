@@ -7,7 +7,7 @@ import { generateToken } from "@/app/lib/utils";
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type , Authorization",
 }
 
 // ✅ OPTIONS - Preflight
@@ -42,10 +42,10 @@ export async function POST(request: NextRequest) {
                 { status: 401, headers: corsHeaders }
             );
         }
-        
-         const token = generateToken({
-      id: user._id,
-    });
+
+        const token = generateToken({
+            id: user._id,
+        });
 
         return NextResponse.json({
             success: true,

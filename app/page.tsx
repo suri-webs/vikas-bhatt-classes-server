@@ -6,7 +6,7 @@ export default function Home() {
   const [status, setStatus] = useState<"checking" | "online" | "offline">("checking")
 
   useEffect(() => {
-    fetch("https://vikas-bhatt-classes-server.onrender.com/api/health")
+    fetch("/api/health")
       .then(res => res.ok ? setStatus("online") : setStatus("offline"))
       .catch(() => setStatus("offline"))
   }, [])

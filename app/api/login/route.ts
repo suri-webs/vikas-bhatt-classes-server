@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { UserModel } from "@/models/User";
 import connectDB from "@/db/connectDB";
+import { generateToken } from "@/app/lib/utils";
 
 // ✅ CORS headers
 const corsHeaders = {
@@ -41,16 +42,15 @@ export async function POST(request: NextRequest) {
                 { status: 401, headers: corsHeaders }
             );
         }
+        
+         const token = generateToken({
+      id: user._id,
+    });
 
         return NextResponse.json({
             success: true,
-            user: {
-                id: user._id,
-                username: user.username,
-                gmail: user.gmail,
-                role: user.role,
-            },
-            token: "dummy-token",
+            user: user,
+            token: token,
         }, { headers: corsHeaders });
 
     } catch (error: any) {

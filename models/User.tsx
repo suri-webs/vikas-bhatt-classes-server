@@ -40,10 +40,18 @@ const userSchema = new Schema({
         pincode: { type: String, default: "" },
         address: { type: String, default: "" },
     },
+    classIn: {
+        type: String,
+        default: "",
+    },
     bio: {
         type: String,
         default: "",
     },
+    results: [{
+        type: Schema.ObjectId,
+        ref: 'Result',
+    }],
     avatar: {
         type: String,
         default: "",

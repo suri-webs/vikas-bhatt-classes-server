@@ -4,7 +4,7 @@ import { UserModel } from "@/models/User";
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type , Authorization",
 }
 
 // ✅ OPTIONS - Preflight request handle karo
@@ -13,11 +13,41 @@ export async function OPTIONS() {
 }
 
 // ✅ GET - Fetch all users
-export async function GET() {
+export async function GET(request: Request) {
+
     try {
         await connectDB();
-        const users = await UserModel.find();
-        return Response.json({ success: true, users }, { headers: corsHeaders });
+        const { searchParams } = new URL(request.url);
+        const rollNumber = searchParams.get("rollNumber");
+        const role = searchParams.get("role");
+        if (role === "admin") {
+            if (!rollNumber) {
+                const users = await UserModel.find();
+                return Response.json({ success: true, users }, { headers: corsHeaders });
+            }
+            else {
+                const user = await UserModel.findOne({ rollNumber });
+                if (!user) {
+                    return Response.json({ success: false, error: "No user found with this RollNumber, try again " }, { status: 404, headers: corsHeaders });
+                }
+                else {
+                    return Response.json({ success: true, user }, { status: 200, headers: corsHeaders });
+                }
+            }
+        }
+        else {
+            if (role === "student" && rollNumber !== null) {
+                const user = await UserModel.findOne({ rollNumber });
+                if (!user) {
+                    return Response.json({ success: false, error: "No user found with this RollNumber, try again " }, { status: 404, headers: corsHeaders });
+                }
+                else {
+                    return Response.json({ success: true, user }, { status: 200, headers: corsHeaders });
+                }
+
+            }
+        }
+
     } catch (error: any) {
         return Response.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
     }
@@ -58,8 +88,7 @@ export async function PUT(request: Request) {
 
         const body = await request.json();
         const {
-            id, username, gmail, password,
-            firstName, lastName,
+            id, username, gmail, password, classIn,
             phone, dob, bio, avatar,
             country, state, city, pincode, address,
         } = body;
@@ -70,15 +99,8 @@ export async function PUT(request: Request) {
 
         const updateData: Record<string, any> = {};
 
-        if (firstName !== undefined || lastName !== undefined) {
-            const current = await UserModel.findById(id);
-            const currentFirst = current?.username?.split(" ")[0] ?? "";
-            const currentLast = current?.username?.split(" ").slice(1).join(" ") ?? "";
-            updateData.username = `${firstName ?? currentFirst} ${lastName ?? currentLast}`.trim();
-        } else if (username !== undefined) {
-            updateData.username = username;
-        }
-
+        if (username !== undefined) updateData.username = username;
+        if (classIn !== undefined) updateData.classIn = classIn;
         if (gmail !== undefined) updateData.gmail = gmail;
         if (password !== undefined) updateData.password = password;
         if (phone !== undefined) updateData.phone = phone;

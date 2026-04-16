@@ -1,7 +1,7 @@
 import { withAuth } from "@/app/lib/middleware/page";
-import { generateToken, verifyToken } from "@/app/lib/utils";
 import connectDB from "@/db/connectDB";
 import { UserModel } from "@/models/User";
+import { NextRequest } from "next/server";
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -15,7 +15,7 @@ export async function OPTIONS() {
 }
 
 // ✅ GET - Fetch all users
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
 
     try {
         await connectDB();
@@ -26,19 +26,7 @@ export async function GET(request: Request) {
         const auth = withAuth(request);
         if (!auth.success) return auth.response;
 
-        // const isAdmin = auth.decoded.role === "admin";
-        // const isSelf = auth.decoded.id === current._id.toString();
-        // if (!isAdmin && !isSelf) {
-        //     return Response.json(
-        //         { success: false, message: "Forbidden: You can only edit your own profile" },
-        //         { status: 403, headers: corsHeaders }
-        //     );
-        // }
-
-
-
-
-        if (role === "admin") {
+        if (auth.decoded.role === "admin") {
             if (!rollNumber) {
                 const users = await UserModel.find();
                 return Response.json({ success: true, users }, { headers: corsHeaders });
@@ -90,17 +78,6 @@ export async function POST(request: Request) {
 
         const user = new UserModel({ username, gmail, password, role: role || "student" });
         await user.save();
-        const token = generateToken({
-            id: user._id,
-            role: user.role
-        });
-
-        // return NextResponse.json({
-        //     success: true,
-        //     user: user,
-        //     token: token,
-        // }, { headers: corsHeaders });
-
 
 
         return Response.json({ success: true, user }, { headers: corsHeaders });
@@ -113,9 +90,10 @@ export async function POST(request: Request) {
 }
 
 // ✅ PUT - Update user profile
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
     try {
-        await connectDB();
+        const auth = withAuth(request);
+        if (!auth.success) return auth.response;
 
         const body = await request.json();
         const {
@@ -124,7 +102,14 @@ export async function PUT(request: Request) {
             country, state, city, pincode, address,
         } = body;
 
-        // ── 1. Require at least one identifier ───────────────────────────
+        if (auth.decoded.role !== "admin" && auth.decoded.id.toString() !== id.toString()) {
+            return Response.json(
+                { success: false, message: "Forbidden" },
+                { status: 403, headers: corsHeaders })
+        }
+
+        await connectDB();
+
         if (!id && !rollNumber) {
             return Response.json(
                 { success: false, message: "User Id or Roll Number is required" },
@@ -141,8 +126,7 @@ export async function PUT(request: Request) {
                 { status: 404, headers: corsHeaders }
             );
         }
-        const auth = withAuth(request);
-        if (!auth.success) return auth.response;
+
         const isAdmin = auth.decoded.role === "admin";
         const isSelf = auth.decoded.id === current._id.toString();
         if (!isAdmin && !isSelf) {
@@ -208,7 +192,7 @@ export async function PUT(request: Request) {
     }
 }
 // ✅ DELETE - Delete user
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
     try {
         await connectDB();
         //need roll number and the who delete must be admin .

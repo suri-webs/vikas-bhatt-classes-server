@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { UserModel } from "@/models/User";
 import connectDB from "@/db/connectDB";
-import { generateToken } from "@/app/lib/utils";
+import { generateAccessToken, generateRefreshToken } from "@/app/lib/utils";
+import { cookies } from "next/headers";
 
 // ✅ CORS headers
 const corsHeaders = {
@@ -42,16 +43,40 @@ export async function POST(request: NextRequest) {
                 { status: 401, headers: corsHeaders }
             );
         }
-        
-         const token = generateToken({
-      id: user._id,
-      role:user.role
-    });
 
+
+        const refreshToken = generateRefreshToken({
+            id: user._id
+        });
+
+        const accessToken = generateAccessToken({
+            id: user._id,
+            role: user.role
+        });
+
+
+        const cookieStore = cookies();
+
+        (await cookieStore).set("refreshToken", refreshToken, {
+            httpOnly: true,
+            secure: true,
+            sameSite: "strict",
+            path: "/",
+             maxAge: 7 * 24 * 60 * 60, 
+        });
+
+        (await cookieStore).set("accessToken", accessToken, {
+            httpOnly: true,
+            secure: true,
+            sameSite: "strict",
+            path: "/",
+            maxAge: 15 * 60,
+        });
+
+      
         return NextResponse.json({
             success: true,
             user: user,
-            token: token,
         }, { headers: corsHeaders });
 
     } catch (error: any) {

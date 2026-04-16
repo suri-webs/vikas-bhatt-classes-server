@@ -1,7 +1,7 @@
 // lib/middleware/authMiddleware.ts
 
 import { NextRequest } from "next/server";
-import { verifyToken } from "@/app/lib/utils";
+import { verifyAccessToken } from "@/app/lib/utils";
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -19,11 +19,10 @@ export type AuthResult =
     | { success: false; response: Response }
     | { success: true; decoded: DecodedToken };
 
+export function withAuth(request: NextRequest): AuthResult {
+    const accessToken = request.cookies.get("accessToken")?.value;
 
-export function withAuth(request: NextRequest | Request): AuthResult {
-    const authHeader = request.headers.get("authorization");
-
-    if (!authHeader) {
+    if (!accessToken) {
         return {
             success: false,
             response: Response.json(
@@ -32,26 +31,11 @@ export function withAuth(request: NextRequest | Request): AuthResult {
             ),
         };
     }
-
-    const token = authHeader.toLowerCase().startsWith("bearer ")
-        ? authHeader.split(" ")[1]
-        : null;
-
-    if (!token) {
-        return {
-            success: false,
-            response: Response.json(
-                { success: false, message: "Unauthorized: Invalid token format" },
-                { status: 401, headers: corsHeaders }
-            ),
-        };
-    }
-
     try {
-        const decoded = verifyToken(token) as DecodedToken;
+        const decoded = verifyAccessToken(accessToken) as DecodedToken;
         return {
-            success: true, 
-             decoded ,    
+            success: true,
+            decoded,
         };
     } catch (error: any) {
         const isJwtError =

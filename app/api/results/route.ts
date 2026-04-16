@@ -34,7 +34,6 @@ export async function GET(request: Request) {
                 );
             }
 
-            // Admin → all results
             else {
                 const results = await ResultModel.find();
 
@@ -44,7 +43,6 @@ export async function GET(request: Request) {
                 );
             }
         }
-        //for students
         if (!rollNumber) {
             return Response.json(
                 { success: false, error: "rollNumber is required" },

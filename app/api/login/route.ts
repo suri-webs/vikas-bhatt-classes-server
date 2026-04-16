@@ -3,14 +3,12 @@ import { UserModel } from "@/models/User";
 import connectDB from "@/db/connectDB";
 import { generateToken } from "@/app/lib/utils";
 
-// ✅ CORS headers
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type , Authorization",
 }
 
-// ✅ OPTIONS - Preflight
 export async function OPTIONS() {
     return NextResponse.json({}, { headers: corsHeaders })
 }
@@ -19,8 +17,39 @@ export async function POST(request: NextRequest) {
     try {
         await connectDB();
 
-        const { gmail, password } = await request.json();
+        const body = await request.json();
+        const { gmail, password, googleToken } = body;
 
+        // ── Google Login ──
+        if (googleToken) {
+            const googleRes = await fetch(
+                `https://www.googleapis.com/oauth2/v1/userinfo?access_token=${googleToken}`
+            );
+            const googleUser = await googleRes.json();
+
+            if (!googleUser.email) {
+                return NextResponse.json(
+                    { success: false, message: "Invalid Google token" },
+                    { status: 401, headers: corsHeaders }
+                );
+            }
+
+            let user = await UserModel.findOne({ gmail: googleUser.email });
+            if (!user) {
+                user = await UserModel.create({
+                    username: googleUser.name,
+                    gmail: googleUser.email,
+                    password: "google-oauth",
+                    avatar: googleUser.picture,
+                    role: "student",
+                });
+            }
+
+            const token = generateToken({ id: user._id });
+            return NextResponse.json({ success: true, user, token }, { headers: corsHeaders });
+        }
+
+        // ── Email/Password Login ──
         if (!gmail || !password) {
             return NextResponse.json(
                 { success: false, message: "Email and password required" },
@@ -43,15 +72,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const token = generateToken({
-            id: user._id,
-        });
-
-        return NextResponse.json({
-            success: true,
-            user: user,
-            token: token,
-        }, { headers: corsHeaders });
+        const token = generateToken({ id: user._id });
+        return NextResponse.json({ success: true, user, token }, { headers: corsHeaders });
 
     } catch (error: any) {
         return NextResponse.json(

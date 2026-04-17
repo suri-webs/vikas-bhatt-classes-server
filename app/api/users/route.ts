@@ -1,5 +1,7 @@
+import { withAuth } from "@/app/lib/middleware/page";
 import connectDB from "@/db/connectDB";
 import { UserModel } from "@/models/User";
+import { NextRequest } from "next/server";
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -13,14 +15,18 @@ export async function OPTIONS() {
 }
 
 // ✅ GET - Fetch all users
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
 
     try {
         await connectDB();
         const { searchParams } = new URL(request.url);
         const rollNumber = searchParams.get("rollNumber");
         const role = searchParams.get("role");
-        if (role === "admin") {
+
+        const auth = withAuth(request);
+        if (!auth.success) return auth.response;
+
+        if (auth.decoded.role === "admin") {
             if (!rollNumber) {
                 const users = await UserModel.find();
                 return Response.json({ success: true, users }, { headers: corsHeaders });
@@ -69,8 +75,10 @@ export async function POST(request: Request) {
             );
         }
 
+
         const user = new UserModel({ username, gmail, password, role: role || "student" });
         await user.save();
+
 
         return Response.json({ success: true, user }, { headers: corsHeaders });
     } catch (error: any) {
@@ -82,35 +90,74 @@ export async function POST(request: Request) {
 }
 
 // ✅ PUT - Update user profile
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
     try {
-        await connectDB();
+        const auth = withAuth(request);
+        if (!auth.success) return auth.response;
 
         const body = await request.json();
         const {
-            id, username, gmail, password, classIn,
-            phone, dob, bio, avatar,
+            id, username, gmail, classIn,
+            phone, dob, bio, avatar, rollNumber,
             country, state, city, pincode, address,
         } = body;
 
-        if (!id) {
-            return Response.json({ success: false, message: "User ID required" }, { status: 400, headers: corsHeaders });
+        if (auth.decoded.role !== "admin" && auth.decoded.id.toString() !== id.toString()) {
+            return Response.json(
+                { success: false, message: "Forbidden" },
+                { status: 403, headers: corsHeaders })
+        }
+
+        await connectDB();
+
+        if (!id && !rollNumber) {
+            return Response.json(
+                { success: false, message: "User Id or Roll Number is required" },
+                { status: 400, headers: corsHeaders }
+            );
+        }
+        const current = id
+            ? await UserModel.findById(id)
+            : await UserModel.findOne({ rollNumber });
+
+        if (!current) {
+            return Response.json(
+                { success: false, message: "User not found" },
+                { status: 404, headers: corsHeaders }
+            );
+        }
+
+        const isAdmin = auth.decoded.role === "admin";
+        const isSelf = auth.decoded.id === current._id.toString();
+        if (!isAdmin && !isSelf) {
+            return Response.json(
+                { success: false, message: "Forbidden: You can only edit your own profile" },
+                { status: 403, headers: corsHeaders }
+            );
         }
 
         const updateData: Record<string, any> = {};
+        if (rollNumber !== undefined) {
+            if (!isAdmin) {
+                return Response.json(
+                    { success: false, message: "Forbidden: Only admins can change roll number" },
+                    { status: 403, headers: corsHeaders }
+                );
+            }
+            updateData.rollNumber = rollNumber;
+        }
 
         if (username !== undefined) updateData.username = username;
         if (classIn !== undefined) updateData.classIn = classIn;
         if (gmail !== undefined) updateData.gmail = gmail;
-        if (password !== undefined) updateData.password = password;
         if (phone !== undefined) updateData.phone = phone;
         if (dob !== undefined) updateData.dob = dob;
         if (bio !== undefined) updateData.bio = bio;
         if (avatar !== undefined) updateData.avatar = avatar;
 
-        if (country !== undefined || state !== undefined || city !== undefined || pincode !== undefined || address !== undefined) {
-            const current = await UserModel.findById(id);
-            const existing = current?.location ?? {};
+        if (country !== undefined || state !== undefined ||
+            city !== undefined || pincode !== undefined || address !== undefined) {
+            const existing = current.location ?? {};
             updateData.location = {
                 country: country ?? existing.country ?? "",
                 state: state ?? existing.state ?? "",
@@ -120,36 +167,57 @@ export async function PUT(request: Request) {
             };
         }
 
-        const updatedUser = await UserModel.findByIdAndUpdate(id, updateData, { new: true });
-
-        if (!updatedUser) {
-            return Response.json({ success: false, message: "User not found" }, { status: 404, headers: corsHeaders });
+        if (Object.keys(updateData).length === 0) {
+            return Response.json(
+                { success: false, message: "No fields provided to update" },
+                { status: 400, headers: corsHeaders }
+            );
         }
+        const updatedUser = await UserModel.findByIdAndUpdate(
+            current._id,
+            updateData,
+            { new: true }
+        );
 
         return Response.json({ success: true, user: updatedUser }, { headers: corsHeaders });
+
     } catch (error: any) {
+        if (error.name === "JsonWebTokenError" || error.name === "TokenExpiredError") {
+            return Response.json(
+                { success: false, message: "Unauthorized: Invalid or expired token" },
+                { status: 401, headers: corsHeaders }
+            );
+        }
         return Response.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
     }
 }
-
 // ✅ DELETE - Delete user
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
     try {
         await connectDB();
+        //need roll number and the who delete must be admin .
+        const { rollNumber } = await request.json();
 
-        const { id } = await request.json();
 
-        if (!id) {
-            return Response.json({ success: false, message: "User ID required" }, { status: 400, headers: corsHeaders });
+        const authHeader = withAuth(request)
+
+
+        if (authHeader.success && authHeader.decoded.role === "admin") {
+            if (!rollNumber) {
+                return Response.json({ success: false, message: "User ID required" }, { status: 400, headers: corsHeaders });
+            }
+
+            const deletedUser = await UserModel.findOneAndDelete(rollNumber);
+
+            if (!deletedUser) {
+                return Response.json({ success: false, message: "User not found" }, { status: 404, headers: corsHeaders });
+            }
+
+            return Response.json({ success: true, message: "User deleted" }, { headers: corsHeaders });
         }
-
-        const deletedUser = await UserModel.findByIdAndDelete(id);
-
-        if (!deletedUser) {
-            return Response.json({ success: false, message: "User not found" }, { status: 404, headers: corsHeaders });
+        else {
+            return Response.json({ success: false, message: "Unauthorized user" }, { status: 401, headers: corsHeaders });
         }
-
-        return Response.json({ success: true, message: "User deleted" }, { headers: corsHeaders });
     } catch (error: any) {
         return Response.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
     }

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { UserModel } from "@/models/User";
 import connectDB from "@/db/connectDB";
-import { generateToken } from "@/app/lib/utils";
+import { generateAccessToken, generateRefreshToken } from "@/app/lib/utils";
+import { cookies } from "next/dist/server/request/cookies";
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -15,6 +16,7 @@ export async function OPTIONS() {
 
 export async function POST(request: NextRequest) {
     try {
+
         await connectDB();
 
         const body = await request.json();
@@ -45,8 +47,7 @@ export async function POST(request: NextRequest) {
                 });
             }
 
-            const token = generateToken({ id: user._id });
-            return NextResponse.json({ success: true, user, token }, { headers: corsHeaders });
+
         }
 
         // ── Email/Password Login ──
@@ -72,8 +73,33 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const token = generateToken({ id: user._id });
-        return NextResponse.json({ success: true, user, token }, { headers: corsHeaders });
+        const refreshToken = generateRefreshToken({
+            id: user._id,
+            role: user.role
+        })
+
+        const accessToken = generateAccessToken({
+            id: user._id,
+            role: user.role
+        });
+
+        const cookieStore = await cookies();
+
+        cookieStore.set("accessToken", accessToken, {
+            httpOnly: true,
+            secure: true,
+            sameSite: "strict",
+            path: "/",
+            maxAge: 15 * 60,
+        });
+
+
+        return NextResponse.json({
+            success: true,
+            user: user,
+            refreshToken
+        }, { headers: corsHeaders });
+
 
     } catch (error: any) {
         return NextResponse.json(

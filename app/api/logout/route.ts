@@ -1,39 +1,34 @@
-import { cookies } from "next/dist/server/request/cookies";
-import { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
-
-
-// ✅ CORS headers
-
-const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type , Authorization",
-}
 export async function POST() {
     try {
-        const cookieStore = await cookies();
-
-        // ✅ Clear both cookies
-        cookieStore.set("accessToken", "", {
-            httpOnly: true,
-            secure: true,
-            sameSite: "strict",
-            path: "/",
-            maxAge: 0, // ✅ instantly expires
+        const response = NextResponse.json({
+            success: true,
+            message: "Logged out successfully"
         });
 
-        cookieStore.set("refreshToken", "", {
+        response.cookies.set("accessToken", "", {
             httpOnly: true,
             secure: true,
-            sameSite: "strict",
+            sameSite: "lax",
             path: "/",
-            maxAge: 0, // ✅ instantly expires
+            maxAge: 0,
         });
 
-        return Response.json({ success: true, message: "Logged out" }, { headers: corsHeaders });
+        response.cookies.set("refreshToken", "", {
+            httpOnly: true,
+            secure: true,
+            sameSite: "lax",
+            path: "/",
+            maxAge: 0,
+        });
+
+        return response;
 
     } catch (error) {
-        return Response.json({ success: false, message: "Logout failed" }, { status: 500, headers: corsHeaders });
+        return NextResponse.json(
+            { success: false, message: "Logout failed" },
+            { status: 500 }
+        );
     }
 }

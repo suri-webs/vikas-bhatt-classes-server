@@ -1,22 +1,15 @@
 import { DecodedToken } from "@/app/lib/middleware/page";
 import { generateAccessToken, verifyRefreshToken } from "@/app/lib/utils";
-import { cookies } from "next/dist/server/request/cookies";
-import { NextRequest } from "next/server";
-
-const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-}
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
     try {
         const refreshToken = request.cookies.get("refreshToken")?.value;
 
         if (!refreshToken) {
-            return Response.json(
+            return NextResponse.json(
                 { success: false, message: "No refresh token" },
-                { status: 401, headers: corsHeaders }
+                { status: 401 }
             );
         }
 
@@ -27,21 +20,22 @@ export async function POST(request: NextRequest) {
             role: decoded.role
         });
 
-        const cookieStore = await cookies();
-        cookieStore.set("accessToken", newAccessToken, {
+        const response = NextResponse.json({ success: true });
+
+        response.cookies.set("accessToken", newAccessToken, {
             httpOnly: true,
             secure: true,
-            sameSite: "strict",
+            sameSite: "lax",
             path: "/",
             maxAge: 15 * 60,
         });
 
-        return Response.json({ success: true }, { headers: corsHeaders });
+        return response;
 
     } catch (error) {
-        return Response.json(
+        return NextResponse.json(
             { success: false, message: "Refresh token expired, login again" },
-            { status: 401, headers: corsHeaders }
+            { status: 401 }
         );
     }
 }

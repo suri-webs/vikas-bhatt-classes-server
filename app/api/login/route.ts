@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { UserModel } from "@/models/User";
 import connectDB from "@/db/connectDB";
 import { generateAccessToken, generateRefreshToken } from "@/app/lib/utils";
-import { cookies } from "next/headers";
+import { cookies } from "next/dist/server/request/cookies";
 
 // ✅ CORS headers
 const corsHeaders = {
@@ -18,6 +18,7 @@ export async function OPTIONS() {
 
 export async function POST(request: NextRequest) {
     try {
+
         await connectDB();
 
         const { gmail, password } = await request.json();
@@ -44,39 +45,31 @@ export async function POST(request: NextRequest) {
             );
         }
 
-
         const refreshToken = generateRefreshToken({
-            id: user._id
-        });
+            id: user._id,
+            role: user.role
+        })
 
         const accessToken = generateAccessToken({
             id: user._id,
             role: user.role
         });
 
-
-        const cookieStore = cookies();
-
-        (await cookieStore).set("refreshToken", refreshToken, {
+        const cookieStore = await cookies();
+       
+        cookieStore.set("accessToken", accessToken, {
             httpOnly: true,
             secure: true,
             sameSite: "strict",
             path: "/",
-             maxAge: 7 * 24 * 60 * 60, 
+            maxAge: 15 * 60, // 15 minutes
         });
 
-        (await cookieStore).set("accessToken", accessToken, {
-            httpOnly: true,
-            secure: true,
-            sameSite: "strict",
-            path: "/",
-            maxAge: 15 * 60,
-        });
 
-      
         return NextResponse.json({
             success: true,
             user: user,
+            refreshToken
         }, { headers: corsHeaders });
 
     } catch (error: any) {

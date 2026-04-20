@@ -1,4 +1,3 @@
-// lib/middleware/authMiddleware.ts
 
 import { NextRequest } from "next/server";
 import { verifyAccessToken } from "@/app/lib/utils";

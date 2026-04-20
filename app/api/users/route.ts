@@ -1,4 +1,4 @@
-import { withAuth } from "@/app/lib/middleware/page";
+import { withAuth } from "@/app/lib/middleware/auth";
 import connectDB from "@/db/connectDB";
 import { UserModel } from "@/models/User";
 import { NextRequest } from "next/server";

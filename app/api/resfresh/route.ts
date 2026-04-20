@@ -1,4 +1,4 @@
-import { DecodedToken } from "@/app/lib/middleware/page";
+import { DecodedToken } from "@/app/lib/middleware/auth";
 import { generateAccessToken, verifyRefreshToken } from "@/app/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 

@@ -12,17 +12,28 @@ interface EnquiryPayload {
     source?: "contact-page" | "popup";
 }
 
-// ✅ CORS headers
-const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type , Authorization",
+const allowedOrigins = [
+    "http://localhost:3000",
+    "https://vikasbhattclasses.com",
+];
+
+function getCorsHeaders(request: NextRequest) {
+    const origin = request.headers.get("origin") || "";
+    const isAllowed = allowedOrigins.includes(origin);
+    return {
+        "Access-Control-Allow-Origin": isAllowed ? origin : "",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Credentials": "true",
+    };
 }
 
-// ✅ OPTIONS - Preflight
-export async function OPTIONS() {
-    return NextResponse.json({}, { headers: corsHeaders })
+
+
+export async function OPTIONS(request: NextRequest) {
+    return NextResponse.json({}, { headers: getCorsHeaders(request) });
 }
+
 
 // ── Transporter ────────────────────────────────────────────────────────────
 
@@ -105,7 +116,7 @@ export async function POST(req: NextRequest) {
         if (!name || !phone || !classLevel || !subject) {
             return NextResponse.json(
                 { success: false, message: "Missing required fields." },
-                { status: 400, headers: corsHeaders }  // ✅
+                { status: 400, headers: getCorsHeaders(req) }  // ✅
             );
         }
 
@@ -116,13 +127,13 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json(
             { success: true },
-            { headers: corsHeaders }  // ✅
+            { headers: getCorsHeaders(req) }  // ✅
         );
     } catch (err) {
         console.error("[enquiry] mail error:", err);
         return NextResponse.json(
             { success: false, message: "Failed to send email. Please try again." },
-            { status: 500, headers: corsHeaders }  // ✅
+            { status: 500, headers: getCorsHeaders(req) }  // ✅
         );
     }
 }

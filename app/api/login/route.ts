@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 
 const allowedOrigins = [
     "http://localhost:3000",
-    "https://vikasbhattclasses.com/", 
+    "https://vikasbhattclasses.com",
 ];
 
 function getCorsHeaders(request: NextRequest) {
@@ -16,7 +16,7 @@ function getCorsHeaders(request: NextRequest) {
         "Access-Control-Allow-Origin": isAllowed ? origin : "",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        "Access-Control-Allow-Credentials": "true", 
+        "Access-Control-Allow-Credentials": "true",
     };
 }
 

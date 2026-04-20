@@ -3,24 +3,34 @@ import connectDB from "@/db/connectDB";
 import { ResultModel } from "@/models/Result";
 import { UserModel } from "@/models/User";
 import { NextRequest } from "next/server";
-import { success } from "zod";
 
-const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type , Authorization",
+const allowedOrigins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "https://vikasbhattclasses.com",
+];
+
+function getCorsHeaders(request: NextRequest) {
+    const origin = request.headers.get("origin") ?? "";
+    const allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+    return {
+        "Access-Control-Allow-Origin": allowedOrigin,
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Credentials": "true",
+    };
 }
 
-export async function OPTIONS() {
-    return Response.json({}, { headers: corsHeaders })
+export async function OPTIONS(request: NextRequest) {
+    return Response.json({}, { headers: getCorsHeaders(request) });
 }
 
 export async function GET(request: NextRequest) {
+    const corsHeaders = getCorsHeaders(request);
     try {
         await connectDB();
 
         const { searchParams } = new URL(request.url);
-
         const rollNumber = searchParams.get("rollNumber");
 
         const token = withAuth(request);
@@ -28,30 +38,19 @@ export async function GET(request: NextRequest) {
             return Response.json(
                 { success: token.success },
                 { status: 403, headers: corsHeaders }
-            )
+            );
         }
 
-        //  ADMIN LOGIC
         if (token.decoded.role === "admin") {
             if (rollNumber) {
-                // Admin → specific student's results
                 const results = await ResultModel.find({ rollNumber });
-
-                return Response.json(
-                    { results },
-                    { headers: corsHeaders }
-                );
-            }
-
-            else {
+                return Response.json({ results }, { headers: corsHeaders });
+            } else {
                 const results = await ResultModel.find();
-
-                return Response.json(
-                    { results },
-                    { headers: corsHeaders }
-                );
+                return Response.json({ results }, { headers: corsHeaders });
             }
         }
+
         if (token.decoded.role === "student") {
             if (!rollNumber) {
                 return Response.json(
@@ -75,23 +74,19 @@ export async function GET(request: NextRequest) {
                 );
             }
 
-            return Response.json(
-                { results: user.results },
-                { headers: corsHeaders }
-            );
-
+            return Response.json({ results: user.results }, { headers: corsHeaders });
         }
     } catch (error: any) {
         return Response.json(
             { success: false, error: error.message },
-            { status: 500, headers: corsHeaders }
+            { status: 500, headers: getCorsHeaders(request) }
         );
     }
 }
 
 export async function POST(request: NextRequest) {
+    const corsHeaders = getCorsHeaders(request);
     try {
-
         const auth = withAuth(request);
         if (!auth.success) return auth.response;
         if (auth.decoded.role !== "admin") {
@@ -139,14 +134,12 @@ export async function POST(request: NextRequest) {
     }
 }
 
-// ✅ PUT - Update user profile
-//if admin
 export async function PUT(request: NextRequest) {
+    const corsHeaders = getCorsHeaders(request);
     try {
         const auth = withAuth(request);
         if (!auth.success) return auth.response;
 
-        //  Role from verified token, not URL params
         if (auth.decoded.role !== "admin") {
             return Response.json(
                 { success: false, message: "Forbidden: Admins only" },
@@ -196,11 +189,9 @@ export async function PUT(request: NextRequest) {
     }
 }
 
-// ✅ DELETE - Delete Result
-//only admin
 export async function DELETE(request: NextRequest) {
+    const corsHeaders = getCorsHeaders(request);
     try {
-
         const auth = withAuth(request);
         if (!auth.success) return auth.response;
 
@@ -213,23 +204,23 @@ export async function DELETE(request: NextRequest) {
 
         await connectDB();
 
-        const role = auth.decoded.role;
-        // Give only " id "
-       const body = await request.json();
+        const body = await request.json();
         const { id } = body;
 
-
         if (!id) {
-            return Response.json({ success: false, message: "Result ID required" }, { status: 400, headers: corsHeaders });
-        }
-        if (role !== "admin") {
-            return Response.json({ success: false, message: "Unsuthorized user" }, { status: 401, headers: corsHeaders });
+            return Response.json(
+                { success: false, message: "Result ID required" },
+                { status: 400, headers: corsHeaders }
+            );
         }
 
         const deletedResult = await ResultModel.findByIdAndDelete(id);
 
         if (!deletedResult) {
-            return Response.json({ success: false, message: "Result no found" }, { status: 404, headers: corsHeaders });
+            return Response.json(
+                { success: false, message: "Result not found" },
+                { status: 404, headers: corsHeaders }
+            );
         }
 
         return Response.json({ success: true, message: "Result deleted" }, { headers: corsHeaders });

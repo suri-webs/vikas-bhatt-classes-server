@@ -6,12 +6,6 @@ const SECRETR = process.env.REFRESH_TOKEN_SECRET!;
 const SECRETA = process.env.ACCESS_TOKEN_SECRET!;
 
 
-//only for token in one time  but we use access and refresh token 
-// export const generateToken = (payload: any) => {
-//   return jwt.sign(payload, SECRET, { expiresIn: "7d" });
-// };
-
-
  export const generateAccessToken = (payload: any) => {
   return jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET!, {
     expiresIn: "15m",

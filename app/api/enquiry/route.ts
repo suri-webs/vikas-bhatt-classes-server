@@ -17,7 +17,7 @@ const allowedOrigins = [
     "https://vikasbhattclasses.com",
 ];
 
-function getCorsHeaders(request: NextRequest) {
+function getgetcorsHeaders(request: NextRequest) {
     const origin = request.headers.get("origin") || "";
     const isAllowed = allowedOrigins.includes(origin);
     return {
@@ -31,7 +31,7 @@ function getCorsHeaders(request: NextRequest) {
 
 
 export async function OPTIONS(request: NextRequest) {
-    return NextResponse.json({}, { headers: getCorsHeaders(request) });
+    return NextResponse.json({}, { headers: getgetcorsHeaders(request) });
 }
 
 
@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
         if (!name || !phone || !classLevel || !subject) {
             return NextResponse.json(
                 { success: false, message: "Missing required fields." },
-                { status: 400, headers: getCorsHeaders(req) }  // ✅
+                { status: 400, headers: getgetcorsHeaders(req) }  // ✅
             );
         }
 
@@ -127,13 +127,13 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json(
             { success: true },
-            { headers: getCorsHeaders(req) }  // ✅
+            { headers: getgetcorsHeaders(req) }  // ✅
         );
     } catch (err) {
         console.error("[enquiry] mail error:", err);
         return NextResponse.json(
             { success: false, message: "Failed to send email. Please try again." },
-            { status: 500, headers: getCorsHeaders(req) }  // ✅
+            { status: 500, headers: getgetcorsHeaders(req) }  // ✅
         );
     }
 }

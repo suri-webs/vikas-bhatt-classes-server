@@ -9,7 +9,7 @@ const allowedOrigins = [
     "https://vikasbhattclasses.com",
 ];
 
-function getCorsHeaders(request: NextRequest) {
+function getgetcorsHeaders(request: NextRequest) {
     const origin = request.headers.get("origin") || "";
     const isAllowed = allowedOrigins.includes(origin);
     return {
@@ -21,11 +21,11 @@ function getCorsHeaders(request: NextRequest) {
 }
 
 export async function OPTIONS(request: NextRequest) {
-    return NextResponse.json({}, { headers: getCorsHeaders(request) });
+    return NextResponse.json({}, { headers: getgetcorsHeaders(request) });
 }
 
 export async function POST(request: NextRequest) {
-    const corsHeaders = getCorsHeaders(request);
+    const getcorsHeaders = getgetcorsHeaders(request);
 
     try {
         await connectDB();
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
             if (!googleUser.email) {
                 return NextResponse.json(
                     { success: false, message: "Invalid Google token" },
-                    { status: 401, headers: corsHeaders }
+                    { status: 401, headers: getcorsHeaders }
                 );
             }
 
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
             if (!gmail || !password) {
                 return NextResponse.json(
                     { success: false, message: "Email and password required" },
-                    { status: 400, headers: corsHeaders }
+                    { status: 400, headers: getcorsHeaders }
                 );
             }
 
@@ -69,14 +69,14 @@ export async function POST(request: NextRequest) {
             if (!user) {
                 return NextResponse.json(
                     { success: false, message: "User not found" },
-                    { status: 404, headers: corsHeaders }
+                    { status: 404, headers: getcorsHeaders }
                 );
             }
 
             if (password !== user.password) {
                 return NextResponse.json(
                     { success: false, message: "Invalid password" },
-                    { status: 401, headers: corsHeaders }
+                    { status: 401, headers: getcorsHeaders }
                 );
             }
         }
@@ -102,13 +102,13 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json(
             { success: true, user },
-            { headers: corsHeaders }
+            { headers: getcorsHeaders }
         );
 
     } catch (error: any) {
         return NextResponse.json(
             { success: false, error: error.message },
-            { status: 500, headers: corsHeaders }
+            { status: 500, headers: getcorsHeaders }
         );
     }
 }

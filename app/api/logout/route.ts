@@ -8,7 +8,7 @@ const allowedOrigins = [
     "https://vikasbhattclasses.com",
 ];
 
-function getCorsHeaders(request: NextRequest) {
+function getcorsHeaders(request: NextRequest) {
     const origin = request.headers.get("origin") || "";
     const isAllowed = allowedOrigins.includes(origin);
     return {
@@ -22,7 +22,7 @@ function getCorsHeaders(request: NextRequest) {
 
 
 export async function OPTIONS(request: NextRequest) {
-    return NextResponse.json({}, { headers: getCorsHeaders(request) });
+    return NextResponse.json({}, { headers: getcorsHeaders(request) });
 }
 
 
@@ -49,13 +49,13 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json(
             { success: true, message: "Logged out" },
-            { headers: getCorsHeaders(request) }
+            { headers:getcorsHeaders(request) }
         );
 
     } catch (error) {
         return NextResponse.json(
             { success: false, message: "Logout failed" },
-            { status: 500, headers: getCorsHeaders(request) }
+            { status: 500, headers: getcorsHeaders(request) }
         );
     }
 }

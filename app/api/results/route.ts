@@ -10,7 +10,7 @@ const allowedOrigins = [
     "https://vikasbhattclasses.com",
 ];
 
-function getCorsHeaders(request: NextRequest) {
+function getgetcorsHeaders(request: NextRequest) {
     const origin = request.headers.get("origin") ?? "";
     const allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
     return {
@@ -22,11 +22,11 @@ function getCorsHeaders(request: NextRequest) {
 }
 
 export async function OPTIONS(request: NextRequest) {
-    return Response.json({}, { headers: getCorsHeaders(request) });
+    return Response.json({}, { headers: getgetcorsHeaders(request) });
 }
 
 export async function GET(request: NextRequest) {
-    const corsHeaders = getCorsHeaders(request);
+    const getcorsHeaders = getgetcorsHeaders(request);
     try {
         await connectDB();
 
@@ -37,17 +37,17 @@ export async function GET(request: NextRequest) {
         if (!token.success) {
             return Response.json(
                 { success: token.success },
-                { status: 403, headers: corsHeaders }
+                { status: 403, headers: getcorsHeaders }
             );
         }
 
         if (token.decoded.role === "admin") {
             if (rollNumber) {
                 const results = await ResultModel.find({ rollNumber });
-                return Response.json({ results }, { headers: corsHeaders });
+                return Response.json({ results }, { headers: getcorsHeaders });
             } else {
                 const results = await ResultModel.find();
-                return Response.json({ results }, { headers: corsHeaders });
+                return Response.json({ results }, { headers: getcorsHeaders });
             }
         }
 
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
             if (!rollNumber) {
                 return Response.json(
                     { success: false, error: "rollNumber is required" },
-                    { status: 400, headers: corsHeaders }
+                    { status: 400, headers: getcorsHeaders }
                 );
             }
 
@@ -64,35 +64,35 @@ export async function GET(request: NextRequest) {
             if (!user) {
                 return Response.json(
                     { success: false, error: "User not found" },
-                    { status: 404, headers: corsHeaders }
+                    { status: 404, headers: getcorsHeaders }
                 );
             }
             if (token.decoded.id !== user.id) {
                 return Response.json(
                     { success: false, error: "Unauthorized user" },
-                    { status: 403, headers: corsHeaders }
+                    { status: 403, headers: getcorsHeaders }
                 );
             }
 
-            return Response.json({ results: user.results }, { headers: corsHeaders });
+            return Response.json({ results: user.results }, { headers: getcorsHeaders });
         }
     } catch (error: any) {
         return Response.json(
             { success: false, error: error.message },
-            { status: 500, headers: getCorsHeaders(request) }
+            { status: 500, headers: getgetcorsHeaders(request) }
         );
     }
 }
 
 export async function POST(request: NextRequest) {
-    const corsHeaders = getCorsHeaders(request);
+    const getcorsHeaders = getgetcorsHeaders(request);
     try {
         const auth = withAuth(request);
         if (!auth.success) return auth.response;
         if (auth.decoded.role !== "admin") {
             return Response.json(
                 { success: false, message: "Forbidden: Admins only" },
-                { status: 403, headers: corsHeaders }
+                { status: 403, headers: getcorsHeaders }
             );
         }
 
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
         if (!rollNumber || !url || !subject || !month || !week) {
             return Response.json(
                 { success: false, message: "All fields required" },
-                { status: 400, headers: corsHeaders }
+                { status: 400, headers: getcorsHeaders }
             );
         }
 
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
         if (!user) {
             return Response.json(
                 { success: false, message: "No user found with given roll number" },
-                { status: 404, headers: corsHeaders }
+                { status: 404, headers: getcorsHeaders }
             );
         }
 
@@ -120,22 +120,22 @@ export async function POST(request: NextRequest) {
         user.results.push(result._id);
         await user.save();
 
-        return Response.json({ success: true, result }, { headers: corsHeaders });
+        return Response.json({ success: true, result }, { headers: getcorsHeaders });
 
     } catch (error) {
         if ((error as any).code === 11000) {
             return Response.json(
                 { success: false, message: "Result already exists" },
-                { status: 400, headers: corsHeaders }
+                { status: 400, headers: getcorsHeaders }
             );
         }
         const message = error instanceof Error ? error.message : "Unknown error";
-        return Response.json({ success: false, error: message }, { status: 500, headers: corsHeaders });
+        return Response.json({ success: false, error: message }, { status: 500, headers: getcorsHeaders });
     }
 }
 
 export async function PUT(request: NextRequest) {
-    const corsHeaders = getCorsHeaders(request);
+    const getcorsHeaders = getgetcorsHeaders(request);
     try {
         const auth = withAuth(request);
         if (!auth.success) return auth.response;
@@ -143,7 +143,7 @@ export async function PUT(request: NextRequest) {
         if (auth.decoded.role !== "admin") {
             return Response.json(
                 { success: false, message: "Forbidden: Admins only" },
-                { status: 403, headers: corsHeaders }
+                { status: 403, headers: getcorsHeaders }
             );
         }
 
@@ -155,7 +155,7 @@ export async function PUT(request: NextRequest) {
         if (!id) {
             return Response.json(
                 { success: false, message: "Result ID required" },
-                { status: 400, headers: corsHeaders }
+                { status: 400, headers: getcorsHeaders }
             );
         }
 
@@ -168,7 +168,7 @@ export async function PUT(request: NextRequest) {
         if (Object.keys(updateData).length === 0) {
             return Response.json(
                 { success: false, message: "No fields provided to update" },
-                { status: 400, headers: corsHeaders }
+                { status: 400, headers: getcorsHeaders }
             );
         }
 
@@ -177,20 +177,20 @@ export async function PUT(request: NextRequest) {
         if (!updatedResult) {
             return Response.json(
                 { success: false, message: "Result not found" },
-                { status: 404, headers: corsHeaders }
+                { status: 404, headers: getcorsHeaders }
             );
         }
 
-        return Response.json({ success: true, result: updatedResult }, { headers: corsHeaders });
+        return Response.json({ success: true, result: updatedResult }, { headers: getcorsHeaders });
 
     } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
-        return Response.json({ success: false, error: message }, { status: 500, headers: corsHeaders });
+        return Response.json({ success: false, error: message }, { status: 500, headers: getcorsHeaders });
     }
 }
 
 export async function DELETE(request: NextRequest) {
-    const corsHeaders = getCorsHeaders(request);
+    const getcorsHeaders = getgetcorsHeaders(request);
     try {
         const auth = withAuth(request);
         if (!auth.success) return auth.response;
@@ -198,7 +198,7 @@ export async function DELETE(request: NextRequest) {
         if (auth.decoded.role !== "admin") {
             return Response.json(
                 { success: false, message: "Forbidden: Admins only" },
-                { status: 403, headers: corsHeaders }
+                { status: 403, headers: getcorsHeaders }
             );
         }
 
@@ -210,7 +210,7 @@ export async function DELETE(request: NextRequest) {
         if (!id) {
             return Response.json(
                 { success: false, message: "Result ID required" },
-                { status: 400, headers: corsHeaders }
+                { status: 400, headers: getcorsHeaders }
             );
         }
 
@@ -219,13 +219,13 @@ export async function DELETE(request: NextRequest) {
         if (!deletedResult) {
             return Response.json(
                 { success: false, message: "Result not found" },
-                { status: 404, headers: corsHeaders }
+                { status: 404, headers: getcorsHeaders }
             );
         }
 
-        return Response.json({ success: true, message: "Result deleted" }, { headers: corsHeaders });
+        return Response.json({ success: true, message: "Result deleted" }, { headers: getcorsHeaders });
 
     } catch (error: any) {
-        return Response.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
+        return Response.json({ success: false, error: error.message }, { status: 500, headers: getcorsHeaders });
     }
 }

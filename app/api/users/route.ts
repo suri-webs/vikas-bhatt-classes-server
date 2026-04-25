@@ -1,18 +1,33 @@
 import { withAuth } from "@/app/lib/middleware/auth";
 import connectDB from "@/db/connectDB";
 import { UserModel } from "@/models/User";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type , Authorization",
+
+const allowedOrigins = [
+    "http://localhost:3000",
+    "https://vikasbhattclasses.com",
+];
+
+function getCorsHeaders(request: NextRequest) {
+    const origin = request.headers.get("origin") || "";
+    const isAllowed = allowedOrigins.includes(origin);
+    return {
+        "Access-Control-Allow-Origin": isAllowed ? origin : "",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Credentials": "true",
+    };
 }
 
-// ✅ OPTIONS - Preflight request handle karo
-export async function OPTIONS() {
-    return Response.json({}, { headers: corsHeaders })
+
+
+export async function OPTIONS(request: NextRequest) {
+    return NextResponse.json({}, { headers: getCorsHeaders(request) });
 }
+
+
+
 
 // ✅ GET - Fetch all users
 export async function GET(request: NextRequest) {
@@ -21,46 +36,44 @@ export async function GET(request: NextRequest) {
         await connectDB();
         const { searchParams } = new URL(request.url);
         const rollNumber = searchParams.get("rollNumber");
-        const role = searchParams.get("role");
-
         const auth = withAuth(request);
         if (!auth.success) return auth.response;
 
         if (auth.decoded.role === "admin") {
             if (!rollNumber) {
                 const users = await UserModel.find();
-                return Response.json({ success: true, users }, { headers: corsHeaders });
+                return Response.json({ success: true, users }, { headers: getCorsHeaders(request) });
             }
             else {
                 const user = await UserModel.findOne({ rollNumber });
                 if (!user) {
-                    return Response.json({ success: false, error: "No user found with this RollNumber, try again " }, { status: 404, headers: corsHeaders });
+                    return Response.json({ success: false, error: "No user found with this RollNumber, try again " }, { status: 404, headers: getCorsHeaders(request) });
                 }
                 else {
-                    return Response.json({ success: true, user }, { status: 200, headers: corsHeaders });
+                    return Response.json({ success: true, user }, { status: 200, headers: getCorsHeaders(request) });
                 }
             }
         }
         else {
-            if (role === "student" && rollNumber !== null) {
+            if (auth.decoded.role === "student" && rollNumber !== null) {
                 const user = await UserModel.findOne({ rollNumber });
                 if (!user) {
-                    return Response.json({ success: false, error: "No user found with this RollNumber, try again " }, { status: 404, headers: corsHeaders });
+                    return Response.json({ success: false, error: "No user found with this RollNumber, try again " }, { status: 404, headers: getCorsHeaders(request) });
                 }
                 else {
-                    return Response.json({ success: true, user }, { status: 200, headers: corsHeaders });
+                    return Response.json({ success: true, user }, { status: 200, headers: getCorsHeaders(request) });
                 }
 
             }
         }
 
     } catch (error: any) {
-        return Response.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
+        return Response.json({ success: false, error: error.message }, { status: 500, headers: getCorsHeaders(request) });
     }
 }
 
 // ✅ POST - Create new user (formData → JSON fix)
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
     try {
         await connectDB();
 
@@ -71,7 +84,7 @@ export async function POST(request: Request) {
         if (!username || !gmail || !password) {
             return Response.json(
                 { success: false, message: "All fields required" },
-                { status: 400, headers: corsHeaders }
+                { status: 400, headers: getCorsHeaders(request) }
             );
         }
 
@@ -80,12 +93,12 @@ export async function POST(request: Request) {
         await user.save();
 
 
-        return Response.json({ success: true, user }, { headers: corsHeaders });
+        return Response.json({ success: true, user }, { headers: getCorsHeaders(request) });
     } catch (error: any) {
         if (error.code === 11000) {
-            return Response.json({ success: false, error: "duplicate key" }, { status: 400, headers: corsHeaders });
+            return Response.json({ success: false, error: "duplicate key" }, { status: 400, headers: getCorsHeaders(request) });
         }
-        return Response.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
+        return Response.json({ success: false, error: error.message }, { status: 500, headers: getCorsHeaders(request) });
     }
 }
 
@@ -105,7 +118,7 @@ export async function PUT(request: NextRequest) {
         if (auth.decoded.role !== "admin" && auth.decoded.id.toString() !== id.toString()) {
             return Response.json(
                 { success: false, message: "Forbidden" },
-                { status: 403, headers: corsHeaders })
+                { status: 403, headers: getCorsHeaders(request) })
         }
 
         await connectDB();
@@ -113,7 +126,7 @@ export async function PUT(request: NextRequest) {
         if (!id && !rollNumber) {
             return Response.json(
                 { success: false, message: "User Id or Roll Number is required" },
-                { status: 400, headers: corsHeaders }
+                { status: 400, headers: getCorsHeaders(request) }
             );
         }
         const current = id
@@ -123,7 +136,7 @@ export async function PUT(request: NextRequest) {
         if (!current) {
             return Response.json(
                 { success: false, message: "User not found" },
-                { status: 404, headers: corsHeaders }
+                { status: 404, headers: getCorsHeaders(request) }
             );
         }
 
@@ -132,7 +145,7 @@ export async function PUT(request: NextRequest) {
         if (!isAdmin && !isSelf) {
             return Response.json(
                 { success: false, message: "Forbidden: You can only edit your own profile" },
-                { status: 403, headers: corsHeaders }
+                { status: 403, headers: getCorsHeaders(request) }
             );
         }
 
@@ -141,7 +154,7 @@ export async function PUT(request: NextRequest) {
             if (!isAdmin) {
                 return Response.json(
                     { success: false, message: "Forbidden: Only admins can change roll number" },
-                    { status: 403, headers: corsHeaders }
+                    { status: 403, headers: getCorsHeaders(request) }
                 );
             }
             updateData.rollNumber = rollNumber;
@@ -170,7 +183,7 @@ export async function PUT(request: NextRequest) {
         if (Object.keys(updateData).length === 0) {
             return Response.json(
                 { success: false, message: "No fields provided to update" },
-                { status: 400, headers: corsHeaders }
+                { status: 400, headers: getCorsHeaders(request) }
             );
         }
         const updatedUser = await UserModel.findByIdAndUpdate(
@@ -179,16 +192,16 @@ export async function PUT(request: NextRequest) {
             { new: true }
         );
 
-        return Response.json({ success: true, user: updatedUser }, { headers: corsHeaders });
+        return Response.json({ success: true, user: updatedUser }, { headers: getCorsHeaders(request) });
 
     } catch (error: any) {
         if (error.name === "JsonWebTokenError" || error.name === "TokenExpiredError") {
             return Response.json(
                 { success: false, message: "Unauthorized: Invalid or expired token" },
-                { status: 401, headers: corsHeaders }
+                { status: 401, headers: getCorsHeaders(request) }
             );
         }
-        return Response.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
+        return Response.json({ success: false, error: error.message }, { status: 500, headers: getCorsHeaders(request) });
     }
 }
 // ✅ DELETE - Delete user
@@ -204,21 +217,21 @@ export async function DELETE(request: NextRequest) {
 
         if (authHeader.success && authHeader.decoded.role === "admin") {
             if (!rollNumber) {
-                return Response.json({ success: false, message: "User ID required" }, { status: 400, headers: corsHeaders });
+                return Response.json({ success: false, message: "User ID required" }, { status: 400, headers: getCorsHeaders(request) });
             }
 
             const deletedUser = await UserModel.findOneAndDelete(rollNumber);
 
             if (!deletedUser) {
-                return Response.json({ success: false, message: "User not found" }, { status: 404, headers: corsHeaders });
+                return Response.json({ success: false, message: "User not found" }, { status: 404, headers: getCorsHeaders(request) });
             }
 
-            return Response.json({ success: true, message: "User deleted" }, { headers: corsHeaders });
+            return Response.json({ success: true, message: "User deleted" }, { headers: getCorsHeaders(request) });
         }
         else {
-            return Response.json({ success: false, message: "Unauthorized user" }, { status: 401, headers: corsHeaders });
+            return Response.json({ success: false, message: "Unauthorized user" }, { status: 401, headers: getCorsHeaders(request) });
         }
     } catch (error: any) {
-        return Response.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
+        return Response.json({ success: false, error: error.message }, { status: 500, headers: getCorsHeaders(request) });
     }
 }

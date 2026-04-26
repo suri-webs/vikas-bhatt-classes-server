@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
                 const users = await UserModel.find();
                 return Response.json({ success: true, users }, { headers: getCorsHeaders(request) });
             } else {
-                const user = await UserModel.findOne({ rollNumber });
+                const user = await UserModel.findOne({ rollNumber }).populate("results");
                 if (!user) {
                     return Response.json(
                         { success: false, error: "No user found with this RollNumber" },
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
         }
 
         if (auth.decoded.role === "student" && rollNumber) {
-            const user = await UserModel.findOne({ rollNumber });
+            const user = await UserModel.findOne({ rollNumber }).populate("results");
             if (!user) {
                 return Response.json(
                     { success: false, error: "No user found with this RollNumber" },
@@ -109,7 +109,8 @@ export async function PUT(request: NextRequest) {
 
         const body = await request.json();
         const {
-            id, username, gmail, classIn, batch,   // ← batch added
+            id, username, gmail, classIn,
+            batch,
             phone, dob, bio, avatar, rollNumber,
             country, state, city, pincode, address,
         } = body;
@@ -135,7 +136,7 @@ export async function PUT(request: NextRequest) {
         }
 
         const isAdmin = auth.decoded.role === "admin";
-        const isSelf = auth.decoded.id === current._id.toString();
+        const isSelf  = auth.decoded.id === current._id.toString();
 
         if (!isAdmin && !isSelf) {
             return Response.json(
@@ -146,9 +147,10 @@ export async function PUT(request: NextRequest) {
 
         const updateData: Record<string, any> = {};
 
-        // rollNumber — admin only
+        // ✅ FIXED: Only block if rollNumber is actually being CHANGED, not just sent as same value
         if (rollNumber !== undefined) {
-            if (!isAdmin) {
+            const isSameRollNumber = String(rollNumber) === String(current.rollNumber);
+            if (!isAdmin && !isSameRollNumber) {
                 return Response.json(
                     { success: false, message: "Forbidden: Only admins can change roll number" },
                     { status: 403, headers: getCorsHeaders(request) }
@@ -157,24 +159,26 @@ export async function PUT(request: NextRequest) {
             updateData.rollNumber = rollNumber;
         }
 
-        if (username !== undefined) updateData.username = username;
-        if (classIn !== undefined)  updateData.classIn  = classIn;
-        if (batch !== undefined)    updateData.batch    = batch;     // ← batch added
-        if (gmail !== undefined)    updateData.gmail    = gmail;
-        if (phone !== undefined)    updateData.phone    = phone;
-        if (dob !== undefined)      updateData.dob      = dob;
-        if (bio !== undefined)      updateData.bio      = bio;
-        if (avatar !== undefined)   updateData.avatar   = avatar;
+        if (username  !== undefined) updateData.username  = username;
+        if (classIn   !== undefined) updateData.classIn   = classIn;
+        if (batch     !== undefined) updateData.batch     = batch;
+        if (gmail     !== undefined) updateData.gmail     = gmail;
+        if (phone     !== undefined) updateData.phone     = phone;
+        if (dob       !== undefined) updateData.dob       = dob;
+        if (bio       !== undefined) updateData.bio       = bio;
+        if (avatar    !== undefined) updateData.avatar    = avatar;
 
-        if (country !== undefined || state !== undefined ||
-            city !== undefined || pincode !== undefined || address !== undefined) {
+        if (
+            country !== undefined || state   !== undefined ||
+            city    !== undefined || pincode !== undefined || address !== undefined
+        ) {
             const existing = current.location ?? {};
             updateData.location = {
-                country:  country  ?? existing.country  ?? "",
-                state:    state    ?? existing.state    ?? "",
-                city:     city     ?? existing.city     ?? "",
-                pincode:  pincode  ?? existing.pincode  ?? "",
-                address:  address  ?? existing.address  ?? "",
+                country: country ?? existing.country ?? "",
+                state:   state   ?? existing.state   ?? "",
+                city:    city    ?? existing.city    ?? "",
+                pincode: pincode ?? existing.pincode ?? "",
+                address: address ?? existing.address ?? "",
             };
         }
 
@@ -230,7 +234,6 @@ export async function DELETE(request: NextRequest) {
             );
         }
 
-        // ✅ Fixed: { rollNumber } not just rollNumber
         const deletedUser = await UserModel.findOneAndDelete({ rollNumber });
 
         if (!deletedUser) {

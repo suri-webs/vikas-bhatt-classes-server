@@ -32,7 +32,6 @@ const userSchema = new Schema({
         type: String,
         default: "",
     },
-    // ✅ location is now a structured object
     location: {
         country: { type: String, default: "" },
         state: { type: String, default: "" },
@@ -44,13 +43,17 @@ const userSchema = new Schema({
         type: String,
         default: "",
     },
+    batch: {
+        type: String,
+        default: "",
+    },
     bio: {
         type: String,
         default: "",
     },
     results: [{
         type: Schema.ObjectId,
-        ref: 'Result',
+        ref: "Result",
     }],
     avatar: {
         type: String,

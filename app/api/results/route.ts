@@ -124,9 +124,9 @@ export async function POST(request: NextRequest) {
         await connectDB();
 
         const body = await request.json();
-        const { rollNumber, url, subject, month, week } = body;
+        const { rollNumber, url, subject, month, week, marksScored, totalMarks } = body;
 
-        if (!rollNumber || !url || !subject || !month || !week) {
+        if (!rollNumber || !url || !subject || !month || !week || marksScored == null || totalMarks == null) {
             return Response.json(
                 { success: false, message: "All fields required" },
                 { status: 400, headers: corsHeaders }
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const result = await ResultModel.create({ rollNumber, url, month, subject, week });
+        const result = await ResultModel.create({ rollNumber, url, month, subject, week, marksScored, totalMarks });
         user.results.push(result._id);
         await user.save();
 
@@ -175,7 +175,7 @@ export async function PUT(request: NextRequest) {
         await connectDB();
 
         const body = await request.json();
-        const { id, url, subject, month, week } = body;
+        const { id, url, subject, month, week, marksScored, totalMarks } = body;
 
         if (!id) {
             return Response.json(
@@ -189,6 +189,8 @@ export async function PUT(request: NextRequest) {
         if (subject !== undefined) updateData.subject = subject;
         if (month !== undefined) updateData.month = month;
         if (week !== undefined) updateData.week = week;
+        if (marksScored !== undefined) updateData.marksScored = marksScored;
+        if (totalMarks !== undefined) updateData.totalMarks = totalMarks;
 
         if (Object.keys(updateData).length === 0) {
             return Response.json(

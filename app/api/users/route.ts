@@ -2,7 +2,7 @@ import { withAuth } from "@/app/lib/middleware/auth";
 import connectDB from "@/db/connectDB";
 import { UserModel } from "@/models/User";
 import { NextRequest, NextResponse } from "next/server";
-
+import { ResultModel } from "@/models/Result";
 const allowedOrigins = [
     "http://localhost:3000",
     "https://vikasbhattclasses.com",

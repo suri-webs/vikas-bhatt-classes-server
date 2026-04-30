@@ -44,7 +44,7 @@ export function withAuth(request: NextRequest): AuthResult {
         };
     }
 
-    // ✅ Case 1: Access token exists — verify it directly
+    //  Case 1: Access token exists — verify it directly
     if (accessToken) {
         try {
             const decoded = verifyAccessToken(accessToken) as DecodedToken;
@@ -67,7 +67,7 @@ export function withAuth(request: NextRequest): AuthResult {
         }
     }
 
-    // ✅ Case 2: No access token (or it was expired) — try refresh token
+    // Case 2: No access token (or it was expired) — try refresh token
     try {
         const decoded = verifyRefreshToken(refreshToken) as DecodedToken;
 

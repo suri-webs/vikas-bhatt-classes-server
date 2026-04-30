@@ -31,13 +31,14 @@ export async function GET(request: NextRequest) {
         await connectDB();
 
         const { searchParams } = new URL(request.url);
+        const url = searchParams.get("url");
         const rollNumber = searchParams.get("rollNumber");
 
         const token = withAuth(request);
         if (!token.success) {
             return Response.json(
                 { success: token.success },
-                { status: 403, headers: corsHeaders }
+                { status: token.response.status, headers: corsHeaders }
             );
         }
 
@@ -52,6 +53,7 @@ export async function GET(request: NextRequest) {
         }
 
         if (token.decoded.role === "student") {
+
             if (!rollNumber) {
                 return Response.json(
                     { success: false, error: "rollNumber is required" },
@@ -60,13 +62,15 @@ export async function GET(request: NextRequest) {
             }
 
             const user = await UserModel.findOne({ rollNumber }).populate("results");
-
+            console.log("here it check user")
             if (!user) {
                 return Response.json(
                     { success: false, error: "User not found" },
                     { status: 404, headers: corsHeaders }
                 );
             }
+            console.log("here it check token")
+
             if (token.decoded.id !== user.id) {
                 return Response.json(
                     { success: false, error: "Unauthorized user" },
@@ -74,15 +78,36 @@ export async function GET(request: NextRequest) {
                 );
             }
 
+            
+            if (url) {
+                const resultByUrl = await ResultModel.findOne({
+                    url,
+                    rollNumber  // ✅ filter by rollNumber directly in query, no manual comparison
+                });
+
+                if (!resultByUrl) {
+                    return Response.json(
+                        { success: false, error: "Result not found" },
+                        { status: 404, headers: corsHeaders }
+                    );
+                }
+
+                return Response.json({ result: resultByUrl }, { headers: corsHeaders });
+            }
+
+            // ✅ no url → return whole array
             return Response.json({ results: user.results }, { headers: corsHeaders });
         }
+
     } catch (error: any) {
-        return Response.json(
-            { success: false, error: error.message },
-            { status: 500, headers: getCorsHeaders(request) }
-        );
-    }
+    return Response.json(
+        { success: false, error: error.message },
+        { status: 500, headers: getCorsHeaders(request) }
+    );
 }
+}
+
+
 
 export async function POST(request: NextRequest) {
     const corsHeaders = getCorsHeaders(request);

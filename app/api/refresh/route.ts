@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
         if (!refreshToken) {
             return NextResponse.json(
                 { success: false, message: "No refresh token" },
-                { status: 401, headers: corsHeaders } 
+                { status: 401, headers: corsHeaders }
             );
         }
 
@@ -40,13 +40,15 @@ export async function POST(request: NextRequest) {
 
         const response = NextResponse.json(
             { success: true },
-            { headers: corsHeaders } 
+            { headers: corsHeaders }
         );
+
+        const isProduction = process.env.NODE_ENV === "production";
 
         response.cookies.set("accessToken", newAccessToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
+            secure: isProduction,            
+            sameSite: isProduction ? "none" : "lax",     
             path: "/",
             maxAge: 15 * 60,
         });
@@ -56,7 +58,7 @@ export async function POST(request: NextRequest) {
     } catch (error) {
         return NextResponse.json(
             { success: false, message: "Refresh token expired, login again" },
-            { status: 401, headers: corsHeaders } 
+            { status: 401, headers: corsHeaders }
         );
     }
 }

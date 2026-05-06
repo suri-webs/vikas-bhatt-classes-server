@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
             if (!googleUser.email) {
                 return NextResponse.json(
                     { success: false, message: "Invalid Google token" },
-                    { status: 401,  headers: getCorsHeaders(request)  }
+                    { status: 401, headers: getCorsHeaders(request) }
                 );
             }
 
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
             if (!gmail || !password) {
                 return NextResponse.json(
                     { success: false, message: "Email and password required" },
-                    { status: 400,  headers: getCorsHeaders(request)  }
+                    { status: 400, headers: getCorsHeaders(request) }
                 );
             }
 
@@ -69,14 +69,14 @@ export async function POST(request: NextRequest) {
             if (!user) {
                 return NextResponse.json(
                     { success: false, message: "User not found" },
-                    { status: 404,  headers: getCorsHeaders(request)  }
+                    { status: 404, headers: getCorsHeaders(request) }
                 );
             }
 
             if (password !== user.password) {
                 return NextResponse.json(
                     { success: false, message: "Invalid password" },
-                    { status: 401,  headers: getCorsHeaders(request)  }
+                    { status: 401, headers: getCorsHeaders(request) }
                 );
             }
         }
@@ -84,31 +84,33 @@ export async function POST(request: NextRequest) {
         const accessToken = generateAccessToken({ id: user._id, role: user.role });
         const refreshToken = generateRefreshToken({ id: user._id, role: user.role });
 
+        const isProduction = process.env.NODE_ENV === "production";
+
         const cookieStore = await cookies();
         cookieStore.set("accessToken", accessToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
+            secure: isProduction,                        // ✅ true in prod
+            sameSite: isProduction ? "none" : "lax",    // ✅ "none" for cross-origin in prod
             path: "/",
             maxAge: 15 * 60,
         });
         cookieStore.set("refreshToken", refreshToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
+            secure: isProduction,                        // ✅ true in prod
+            sameSite: isProduction ? "none" : "lax",    // ✅ "none" for cross-origin in prod
             path: "/",
             maxAge: 7 * 24 * 60 * 60,
         });
 
         return NextResponse.json(
             { success: true, user },
-            {  headers: getCorsHeaders(request)  }
+            { headers: getCorsHeaders(request) }
         );
 
     } catch (error: any) {
         return NextResponse.json(
             { success: false, error: error.message },
-            { status: 500,  headers: getCorsHeaders(request)  }
+            { status: 500, headers: getCorsHeaders(request) }
         );
     }
 }
